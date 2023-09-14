@@ -8,26 +8,55 @@ const logger = winston.createLogger({
 });
 
 const PORT = process.env.PORT || 3000;
-const server = http.createServer((req, res) => {
-  // SET UP ENDPOINTS HERE
-  try {
-    if (req.method === "GET" && req.url === "/api/groceries") {
-      logger.info(`${req.method} request made to endpoint ${req.url}`);
-      res.writeHead(200, {
-        "Content-Type": "application/json",
-      });
-      res.end(JSON.stringify(groceryItems));
-    }else {
-        throw new Error("Bad Request");
-    }
-  } catch (error) {
-    res.writeHead(500, {
-        "Content-Type": "application/json"
-    });
-    res.end(JSON.stringify({"message": "Something went wrong"}));
-    logger.error(`${req.method} request made to endpoint ${req.url} failed`);
-  }
-}).listen(PORT, () => {
-    console.log(`Server listening at http://localhost:${PORT}`);
-    logger.info("Server started");
-})
+http
+  .createServer((request, response) => {
+    try {
+      const { headers, method, url } = request;
+
+      // Log incoming request
+      logger.info(`${method} request send to endpoint ${url}`);
+
+      // Parse the body
+      let body = [];
+      request
+        .on("error", (err) => {
+          throw new Error(err.message);
+        })
+        .on("data", (chunk) => {
+          body.push(chunk);
+        })
+        .on("end", () => {
+          body = Buffer.concat(body).toString();
+
+          // GET
+          // Returns all grocery list items
+          if (method === "GET" && url === "/api/groceries") {
+            response.writeHead(200, {
+              "Content-Type": "application/json",
+            });
+            response.end(JSON.stringify(groceryItems));
+          }
+
+          // POST
+          // Creates a new grocery list item
+          if (method === "POST" && url === "/api/groceries") {
+            let item = JSON.parse(body);
+            groceryItems.push(item);
+            logger.info("New grocery item added.");
+            response.writeHead(201, {
+              "Content-Type": "application/json",
+            });
+            response.end(
+              JSON.stringify({
+                message: "New grocery item added successfully.",
+              })
+            );
+          }
+        });
+    } catch (error) {}
+  })
+  .listen(PORT, () => {
+    logger.info(
+      `Server started listening for requests at http://localhost:${PORT}`
+    );
+  });
