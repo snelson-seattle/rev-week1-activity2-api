@@ -16,7 +16,7 @@ http
       const { headers, method } = request;
 
       // Log incoming request
-      logger.info(`${method} request send to endpoint ${url}`);
+      logger.info(`${method} request send to endpoint ${request.url}`);
 
       // Parse the body
       let body = [];
