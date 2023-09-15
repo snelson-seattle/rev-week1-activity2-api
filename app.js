@@ -36,69 +36,57 @@ http
             response.writeHead(200, {
               "Content-Type": "application/json",
             });
-            response.end(JSON.stringify(groceryItems));
+            response.end(JSON.stringify(returnGroceryItems()));
           }
 
           // POST
           // Creates a new grocery list item
           if (method === "POST" && request.url === "/api/groceries") {
             let item = JSON.parse(body);
-            groceryItems.push(item);
-            logger.info("New grocery item added.");
+
             response.writeHead(201, {
               "Content-Type": "application/json",
             });
-            response.end(
-              JSON.stringify({
-                message: "New grocery item added successfully.",
-              })
-            );
+            response.end(JSON.stringify(addGroceryItem(item)));
+
+            logger.info("New grocery item added.");
           }
 
           // PUT
           // Update a grocery list item
           if (method === "PUT") {
             const parsed = url.parse(request.url);
-            const query  = querystring.parse(parsed.query);
-            if(!query.name || groceryItems.length < 1){
-                throw new Error("Bad request");
-            }
+            const query = querystring.parse(parsed.query);
 
-            for(let i = 0; i < groceryItems.length; i++){
-                if(groceryItems[i].name === query.name){
-                    let item = JSON.parse(body);
-                    groceryItems.splice(i, 1, item);
-                }
-            }
+            let updatedItem = updateGroceryItem(query.name);    
+
+            response.writeHead(201, {
+              "Content-Type": "application/json",
+            });
+            response.end(
+              JSON.stringify({ message: "Successfully updated grocery list item", item: updatedItem })
+            );
 
             logger.info("Successfully updated item.");
-            response.writeHead(201, {
-                "Content-Type": "application/json",
-            });
-            response.end(JSON.stringify({"message": "Successfully updated grocery item"}));
           }
 
           // DELETE
           // Remove an item from the grocery list
           if (method === "DELETE") {
             const parsed = url.parse(request.url);
-            const query  = querystring.parse(parsed.query);
-            if(!query.name || groceryItems.length < 1){
-                throw new Error("Bad request");
-            }
+            const query = querystring.parse(parsed.query);
 
-            for(let i = 0; i < groceryItems.length; i++){
-                if(groceryItems[i].name === query.name){
-                    groceryItems.splice(i, 1);
-                }
-            }
-            logger.info("Successfully deleted item.");
+            let deletedItem = deleteGroceryItem(query.name);
+           
             response.writeHead(201, {
-                "Content-Type": "application/json",
+              "Content-Type": "application/json",
             });
-            response.end(JSON.stringify({"message": "Successfully deleted grocery item"}));
-          }
+            response.end(
+              JSON.stringify({ message: "Successfully deleted grocery item", item: deletedItem })
+            );
 
+            logger.info("Successfully deleted item.");
+          }
         });
     } catch (error) {
       logger.error(error.message);
@@ -113,3 +101,45 @@ http
       `Server started listening for requests at http://localhost:${PORT}`
     );
   });
+
+function returnGroceryItems() {
+  return groceryItems;
+}
+
+function addGroceryItem(item) {
+  groceryItems.push(item);
+  return { message: "New item added successfully", item: item };
+}
+
+function updateGroceryItem(name) {
+  let item = null;
+  for (let i = 0; i < groceryItems.length; i++) {
+    if (groceryItems[i].name === name) {
+      item = groceryItems[i];
+      item.purchased = true;
+      groceryItems.splice(i, 1, item);
+    }
+  }
+
+  return item;
+}
+
+function deleteGroceryItem(name) {
+  let item = null;
+  for (let i = 0; i < groceryItems.length; i++) {
+    if (groceryItems[i].name === name) {
+      item = groceryItems[i];
+      groceryItems.splice(i, 1);
+    }
+  }
+
+  return item;
+}
+
+module.exports = {
+  groceryItems,
+  returnGroceryItems,
+  addGroceryItem,
+  updateGroceryItem,
+  deleteGroceryItem,
+};
